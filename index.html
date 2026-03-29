@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ThermoPro TP357S Monitor (Fixed)</title>
+<title>ThermoPro TP357S Monitor</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,6 +33,7 @@
   .did { font-size: 0.67rem; color: var(--muted); margin-top: 2px; font-style: italic; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pill { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 100px; padding: 5px 13px; font-size: 0.7rem; color: var(--muted); transition: all 0.3s; }
   .pill.live  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .pill.error { border-color: var(--hot); color: var(--hot); background: rgba(255,87,87,0.1); }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .dot.pulse { animation: pulse 1.3s infinite; }
 
@@ -47,6 +48,7 @@
   .rl { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:12px; }
   .rv { font-family:'Syne',sans-serif; font-size:clamp(2.8rem,7vw,4rem); font-weight:800; line-height:1; color:#fff; letter-spacing:-0.04em; transition:color 0.4s; }
   .rv.dash { color:var(--muted) !important; opacity:0.3; }
+  .rv.warm { color:#ff8c7a; } .rv.cool { color:var(--cold); }
   .ru { font-size:1.3rem; font-weight:600; opacity:0.5; margin-left:3px; }
   .rs { margin-top:9px; font-size:0.68rem; color:var(--dim); min-height:20px; }
   .badge { display:inline-flex; align-items:center; border-radius:100px; padding:3px 9px; font-size:0.64rem; letter-spacing:0.04em; }
@@ -60,66 +62,124 @@
   .sv { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; }
   .bw { height:3px; background:var(--border); border-radius:2px; margin-top:6px; overflow:hidden; }
   .bb { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.6s,background 0.4s; }
+  .bb.lo{background:var(--hot);} .bb.mid{background:var(--warn);}
 
   .ctrl { padding:18px 20px; display:flex; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); background:var(--panel2); }
-  button { font-family:'DM Mono',monospace; cursor:pointer; border:none; border-radius:10px; padding:10px 18px; font-size:0.75rem; font-weight:500; transition:all 0.18s; }
+  button { font-family:'DM Mono',monospace; cursor:pointer; border:none; border-radius:10px; padding:10px 18px; font-size:0.75rem; font-weight:500; letter-spacing:0.04em; transition:all 0.18s; }
   .bp { background:var(--accent); color:#061009; flex:1; box-shadow:0 4px 16px var(--accent-glow); }
+  .bp:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .bp:disabled { opacity:0.4; cursor:not-allowed; transform:none; filter:none; box-shadow:none; }
   .bs { background:transparent; color:var(--dim); border:1px solid var(--border); }
+  .bs:hover { border-color:var(--dim); color:var(--text); }
+  .bs:disabled { opacity:0.3; cursor:not-allowed; }
   .bu { background:var(--panel); border:1px solid var(--border); color:var(--dim); min-width:88px; }
+  .bu.on { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
 
   .cw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; animation:fadeUp 0.5s 0.2s ease both; }
+  .ch { display:flex; align-items:center; justify-content:space-between; padding:13px 20px; border-bottom:1px solid var(--border); background:var(--panel2); }
+  .ct { font-family:'Syne',sans-serif; font-weight:700; font-size:0.8rem; }
+  .lg { display:flex; gap:12px; font-size:0.62rem; color:var(--muted); }
+  .ld { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:3px; vertical-align:middle; }
   canvas { display:block; width:100%!important; height:165px!important; background:var(--panel); }
-  
-  .dw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid rgba(255,140,61,0.25); border-radius:var(--radius); overflow:hidden; }
-  .dh { padding:11px 20px; background:rgba(255,140,61,0.07); border-bottom:1px solid rgba(255,140,61,0.15); font-family:'Syne',sans-serif; font-weight:700; font-size:0.74rem; color:var(--warn); text-transform:uppercase; }
-  #rawlog { padding:14px 20px; max-height:200px; overflow-y:auto; font-size:0.68rem; }
-  #log { padding:12px 20px; max-height:145px; overflow-y:auto; font-size:0.69rem; border-top: 1px solid var(--border); }
-  .le { color:var(--muted); } .le.ok { color:var(--accent); } .ts { opacity:0.32; margin-right:8px; }
+
+  /* Debug panel */
+  .dw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid rgba(255,140,61,0.25); border-radius:var(--radius); overflow:hidden; animation:fadeUp 0.5s 0.25s ease both; }
+  .dh { display:flex; align-items:center; justify-content:space-between; padding:11px 20px; background:rgba(255,140,61,0.07); border-bottom:1px solid rgba(255,140,61,0.15); }
+  .dht { font-family:'Syne',sans-serif; font-weight:700; font-size:0.74rem; color:var(--warn); text-transform:uppercase; letter-spacing:0.08em; }
+  .dhsub { font-size:0.65rem; color:#a06030; }
+  #rawlog { padding:14px 20px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; font-size:0.68rem; line-height:1.6; }
+  .re { color:var(--muted); word-break:break-all; }
+  .re .rk { color:var(--warn); margin-right:6px; flex-shrink:0; }
+  .re .rv2 { color:#c8a060; font-family:'DM Mono',monospace; }
+  .rrow { display:flex; gap:6px; }
+
+  .lw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; animation:fadeUp 0.5s 0.3s ease both; }
+  .lh { padding:11px 20px; background:var(--panel2); border-bottom:1px solid var(--border); font-family:'Syne',sans-serif; font-weight:700; font-size:0.74rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  #log { padding:12px 20px; max-height:145px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; font-size:0.69rem; line-height:1.55; }
+  .le{color:var(--muted);} .le.i{color:var(--dim);} .le.ok{color:var(--accent);} .le.er{color:var(--hot);} .le.wa{color:var(--warn);}
+  .ts{opacity:0.32;margin-right:8px;}
+
   @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fadeUp  {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  @keyframes pulse   {0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.35;transform:scale(0.7)}}
+  @keyframes pop     {0%{opacity:0;transform:scale(0.91)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .pop { animation:pop 0.3s ease both; }
+  @media(max-width:480px){.readings{grid-template-columns:1fr} .strip{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo-row">
-    <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#061009" stroke-width="2.5"><path d="M12 9V2"/><circle cx="12" cy="14" r="4"/><path d="M8.5 5.5H6M8.5 9H5"/></svg></div>
+    <div class="logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#061009" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 9V2"/><circle cx="12" cy="14" r="4"/><path d="M8.5 5.5H6M8.5 9H5"/>
+      </svg>
+    </div>
     <h1>TP357S Monitor</h1>
   </div>
-  <p class="subtitle">ThermoPro BLE · Fixed Version</p>
+  <p class="subtitle">ThermoPro BLE · Temperature &amp; Humidity</p>
 </header>
 
 <div class="card">
   <div class="card-hd">
-    <div><div class="dname" id="dname">Ready</div><div class="did" id="did">Connect to start</div></div>
+    <div>
+      <div class="dname" id="dname">No device connected</div>
+      <div class="did" id="did">—</div>
+    </div>
     <div class="pill" id="pill"><span class="dot" id="pdot"></span><span id="ptxt">Idle</span></div>
   </div>
+
   <div class="readings">
-    <div class="rc" id="tcell"><div class="rl">Temperature</div><div class="rv dash" id="tval">—<span class="ru">°C</span></div><div class="rs" id="tsub">&nbsp;</div></div>
-    <div class="rc" id="hcell"><div class="rl">Humidity</div><div class="rv dash" id="hval">—<span class="ru">%</span></div><div class="rs" id="hsub">&nbsp;</div></div>
+    <div class="rc" id="tcell">
+      <div class="rl">Temperature</div>
+      <div class="rv dash" id="tval">—<span class="ru" id="tunit">°C</span></div>
+      <div class="rs" id="tsub">&nbsp;</div>
+    </div>
+    <div class="rc" id="hcell">
+      <div class="rl">Humidity</div>
+      <div class="rv dash" id="hval">—<span class="ru">%</span></div>
+      <div class="rs" id="hsub">&nbsp;</div>
+    </div>
   </div>
+
   <div class="strip">
     <div class="sc"><div class="sl">Battery</div><div class="sv" id="batv">—</div><div class="bw"><div class="bb" id="batb"></div></div></div>
     <div class="sc"><div class="sl">Signal</div><div class="sv" id="rssi">—</div></div>
     <div class="sc"><div class="sl">Updated</div><div class="sv" id="upd">—</div></div>
   </div>
+
   <div class="ctrl">
     <button class="bp" id="connBtn" onclick="connectDevice()">▶ Connect Device</button>
-    <button class="bs" onclick="location.reload()">■ Disconnect</button>
+    <button class="bs" id="discBtn" onclick="disconnectDevice()" disabled>■ Disconnect</button>
     <button class="bu" id="unitBtn" onclick="toggleUnit()">°C / °F</button>
   </div>
 </div>
 
 <div class="cw">
+  <div class="ch">
+    <div class="ct">Reading History</div>
+    <div class="lg">
+      <span><span class="ld" style="background:#2dff7e"></span>Temp</span>
+      <span><span class="ld" style="background:#5bc8f5"></span>Humidity</span>
+    </div>
+  </div>
   <canvas id="chart" height="165"></canvas>
 </div>
 
+<!-- Raw packet debug panel -->
 <div class="dw">
-  <div class="dh">🔍 Raw Packet Inspector</div>
-  <div id="rawlog">Waiting for packets...</div>
+  <div class="dh">
+    <div class="dht">🔍 Raw Packet Inspector</div>
+    <div class="dhsub">All advertisement fields from your device</div>
+  </div>
+  <div id="rawlog"><span style="color:var(--muted);font-size:0.68rem">Waiting for packets…</span></div>
 </div>
-<div id="log"></div>
+
+<div class="lw">
+  <div class="lh">Event Log</div>
+  <div id="log"></div>
+</div>
 
 <script>
 let device = null, isFahr = false;
@@ -127,97 +187,242 @@ let lastT = null, lastH = null, lastB = null, lastRssi = null;
 let hist = { t:[], h:[], l:[] };
 const MAX = 80;
 let ctx2d = null;
+let rawCount = 0;
+
+// ─── Helpers ───
+function hex(dv) {
+  if (!dv) return '(empty)';
+  return [...new Uint8Array(dv.buffer)].map(b=>b.toString(16).padStart(2,'0')).join(' ');
+}
+function hexArr(bytes) {
+  return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
+}
 
 function log(msg, type='i') {
   const el = document.getElementById('log');
-  const d = document.createElement('div');
+  const d  = document.createElement('div');
   d.className = 'le ' + type;
   d.innerHTML = `<span class="ts">${new Date().toLocaleTimeString()}</span>${msg}`;
   el.prepend(d);
+  while (el.children.length > 100) el.removeChild(el.lastChild);
 }
 
+function setStatus(text, cls) {
+  document.getElementById('pill').className = 'pill ' + (cls||'');
+  document.getElementById('pdot').className = 'dot' + (cls==='live'?' pulse':'');
+  document.getElementById('ptxt').textContent = text;
+}
+
+// ─── Try all known parse strategies ───
 function tryParse(bytes) {
-  // Strategy: temp (bytes 0-1), humidity (byte 2), battery (byte 3)
+  // Strategy 1: standard TP357 layout — offset 0: int16LE temp*10, byte2 humidity, byte4 battery
+  if (bytes.length >= 5) {
+    const t = (new Int16Array(new Uint8Array([bytes[0],bytes[1]]).buffer))[0] / 10;
+    const h = bytes[2], b = bytes[4];
+    if (t > -40 && t < 85 && h >= 0 && h <= 100 && b >= 0 && b <= 100)
+      return {t, h, b, strategy: 'mfr@0'};
+  }
+  // Strategy 2: offset 2
+  if (bytes.length >= 7) {
+    const t = (new Int16Array(new Uint8Array([bytes[2],bytes[3]]).buffer))[0] / 10;
+    const h = bytes[4], b = bytes[6];
+    if (t > -40 && t < 85 && h >= 0 && h <= 100 && b >= 0 && b <= 100)
+      return {t, h, b, strategy: 'mfr@2'};
+  }
+  // Strategy 3: service data TP357 — community reports bytes 2-3 temp, byte 4 hum, byte 5 bat
+  if (bytes.length >= 6) {
+    const t = (new Int16Array(new Uint8Array([bytes[2],bytes[3]]).buffer))[0] / 10;
+    const h = bytes[4], b = bytes[5];
+    if (t > -40 && t < 85 && h >= 0 && h <= 100 && b >= 0 && b <= 100)
+      return {t, h, b, strategy: 'svc@2'};
+  }
+  // Strategy 4: temp at byte 0, humidity at byte 2, battery at byte 3 (some variants)
   if (bytes.length >= 4) {
-    const t = (new Int16Array(new Uint8Array([bytes[0], bytes[1]]).buffer))[0] / 10;
+    const t = (new Int16Array(new Uint8Array([bytes[0],bytes[1]]).buffer))[0] / 10;
     const h = bytes[2], b = bytes[3];
-    if (t > -40 && t < 85 && h <= 100) return { t, h, b };
+    if (t > -40 && t < 85 && h >= 0 && h <= 100 && b >= 0 && b <= 100)
+      return {t, h, b, strategy: 'alt@0'};
   }
   return null;
 }
 
+// ─── Advertisement handler ───
 function onAdv(e) {
-  lastRssi = e.rssi;
-  if (e.manufacturerData && e.manufacturerData.has(0xec88)) {
-    const dv = e.manufacturerData.get(0xec88);
-    const bytes = new Uint8Array(dv.buffer);
-    const hexStr = [...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
-    document.getElementById('rawlog').innerHTML = `<div class="rrow"><span class="rk">ID 0xec88:</span><span class="rv2">${hexStr}</span></div>`;
-    
-    const parsed = tryParse(bytes);
-    if (parsed) {
-      lastT = parsed.t; lastH = parsed.h; lastB = (parsed.b > 100) ? lastB : parsed.b;
-      updateDisplay();
-      push(parsed.t, parsed.h);
+  document.getElementById('dname').textContent = e.device.name || 'TP357S';
+  document.getElementById('did').textContent   = e.device.id   || '';
+  setStatus('Live', 'live');
+  if (e.rssi != null) lastRssi = e.rssi;
+
+  // ── Dump everything to raw panel ──
+  rawCount++;
+  const rl = document.getElementById('rawlog');
+  const entry = document.createElement('div');
+  entry.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:6px;margin-bottom:2px';
+
+  let rows = `<div style="color:var(--dim);font-size:0.63rem;margin-bottom:4px">#${rawCount} · ${new Date().toLocaleTimeString()} · RSSI ${e.rssi ?? '?'} dBm</div>`;
+
+  // Manufacturer data
+  if (e.manufacturerData && e.manufacturerData.size > 0) {
+    for (const [id, dv] of e.manufacturerData) {
+      rows += `<div class="rrow"><span class="rk">MFR 0x${id.toString(16).padStart(4,'0')}:</span><span class="rv2">${hex(dv)}</span></div>`;
     }
+  } else {
+    rows += `<div class="rrow"><span class="rk">MFR:</span><span style="color:var(--muted)">(none)</span></div>`;
+  }
+
+  // Service data
+  if (e.serviceData && e.serviceData.size > 0) {
+    for (const [uuid, dv] of e.serviceData) {
+      rows += `<div class="rrow"><span class="rk">SVC ${uuid}:</span><span class="rv2">${hex(dv)}</span></div>`;
+    }
+  } else {
+    rows += `<div class="rrow"><span class="rk">SVC:</span><span style="color:var(--muted)">(none — add service UUID to filter)</span></div>`;
+  }
+
+  entry.innerHTML = rows;
+  rl.prepend(entry);
+  while (rl.children.length > 20) rl.removeChild(rl.lastChild);
+
+  // ── Try to parse from manufacturer data ──
+  let parsed = null;
+  if (e.manufacturerData && e.manufacturerData.size > 0) {
+    for (const [id, dv] of e.manufacturerData) {
+      const bytes = new Uint8Array(dv.buffer);
+      parsed = tryParse(bytes);
+      if (parsed) { log(`✅ Parsed via ${parsed.strategy} from MFR 0x${id.toString(16)}`, 'ok'); break; }
+    }
+  }
+
+  // ── Try service data ──
+  if (!parsed && e.serviceData && e.serviceData.size > 0) {
+    for (const [uuid, dv] of e.serviceData) {
+      const bytes = new Uint8Array(dv.buffer);
+      parsed = tryParse(bytes);
+      if (parsed) { log(`✅ Parsed via ${parsed.strategy} from SVC ${uuid}`, 'ok'); break; }
+    }
+  }
+
+  if (parsed) {
+    lastT = parsed.t; lastH = parsed.h; lastB = parsed.b;
+    log(`📡 ${parsed.t.toFixed(1)}°C · ${parsed.h}% RH · bat ${parsed.b}%`, 'ok');
+    updateDisplay();
+    push(parsed.t, parsed.h);
+  } else {
+    // Update signal/time even with no parse
+    document.getElementById('rssi').textContent = lastRssi != null ? lastRssi+' dBm' : '—';
+    document.getElementById('upd').textContent  = new Date().toLocaleTimeString();
   }
 }
 
+// ─── Connect ───
 async function connectDevice() {
+  if (!navigator.bluetooth) {
+    log('Web Bluetooth not available. Enable edge://flags/#enable-experimental-web-platform-features', 'er');
+    return;
+  }
+  document.getElementById('connBtn').disabled = true;
+  setStatus('Picking…', '');
+  log('Opening device picker…');
+
   try {
-    log("Requesting device...");
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: 'TP357' }, { namePrefix: 'Thermopro' }],
-      // CRITICAL FIX: Explicitly request manufacturer data 0xec88
-      optionalManufacturerData: [0xec88], 
-      optionalServices: ['battery_service', 'environmental_sensing']
+      filters: [
+        { namePrefix: 'TP357' },
+        { namePrefix: 'TP-357' },
+        { namePrefix: 'Thermopro' },
+      ],
+      // List every plausible service so the browser passes their data through
+      optionalServices: [
+        'environmental_sensing',
+        '0000181a-0000-1000-8000-00805f9b34fb',
+        '0000181b-0000-1000-8000-00805f9b34fb',
+        '0000ffc0-0000-1000-8000-00805f9b34fb',
+        '0000ffc1-0000-1000-8000-00805f9b34fb',
+        '0000ffc2-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '0000ffe5-0000-1000-8000-00805f9b34fb',
+        'battery_service',
+        '0000180f-0000-1000-8000-00805f9b34fb',
+        'generic_access',
+        'generic_attribute',
+      ]
     });
 
+    log(`Selected: ${device.name}`, 'ok');
+    document.getElementById('dname').textContent = device.name || 'TP357S';
+    document.getElementById('did').textContent   = device.id   || '';
+    setStatus('Watching…', 'live');
+    document.getElementById('discBtn').disabled = false;
+
     device.addEventListener('advertisementreceived', onAdv);
+    device.addEventListener('gattserverdisconnected', () => { log('Device out of range.', 'wa'); setStatus('Out of range',''); });
+
     await device.watchAdvertisements();
-    
-    document.getElementById('connBtn').disabled = true;
-    document.getElementById('pill').className = 'pill live';
-    document.getElementById('ptxt').textContent = 'Live';
-    document.getElementById('pdot').className = 'dot pulse';
-    log("Watching advertisements...", "ok");
-  } catch(e) {
-    log(e.message, "er");
+    log('watchAdvertisements() active — waiting for packets…', 'ok');
+    log('👀 Check the Raw Packet Inspector below — we need to see what bytes arrive.', 'wa');
+
+  } catch(err) {
+    document.getElementById('connBtn').disabled = false;
+    setStatus('', '');
+    if (err.name === 'NotFoundError') log('Picker closed without selecting.', 'wa');
+    else if (err.name === 'NotSupportedError') log('watchAdvertisements not supported. Enable edge://flags/#enable-experimental-web-platform-features', 'er');
+    else log(`${err.name}: ${err.message}`, 'er');
   }
+}
+
+async function disconnectDevice() {
+  if (device) {
+    try { await device.unwatchAdvertisements(); } catch(e){}
+    try { if (device.gatt?.connected) device.gatt.disconnect(); } catch(e){}
+    device.removeEventListener('advertisementreceived', onAdv);
+    device = null;
+  }
+  setStatus('', '');
+  document.getElementById('connBtn').disabled = false;
+  document.getElementById('discBtn').disabled = true;
+  log('Disconnected.');
 }
 
 function updateDisplay() {
-  const dispT = isFahr ? (lastT * 9/5 + 32) : lastT;
-  const unit = isFahr ? '°F' : '°C';
-  
-  const tv = document.getElementById('tval');
-  tv.innerHTML = `${dispT.toFixed(1)}<span class="ru">${unit}</span>`;
-  tv.classList.remove('dash');
-  
-  const hv = document.getElementById('hval');
-  hv.innerHTML = `${lastH}<span class="ru">%</span>`;
-  hv.classList.remove('dash');
-
-  const tc = document.getElementById('tcell'), ts = document.getElementById('tsub');
-  if (lastT > 28) { tc.className='rc warm'; ts.textContent='Warm'; }
-  else if (lastT < 16) { tc.className='rc cool'; ts.textContent='Cool'; }
-  else { tc.className='rc'; ts.textContent='Comfortable'; }
-
-  const hc = document.getElementById('hcell'), hs = document.getElementById('hsub');
-  if (lastH < 30) { hc.className='rc hlo'; hs.innerHTML='<span class="badge dry">Too dry</span>'; }
-  else if (lastH > 60) { hc.className='rc hhi'; hs.innerHTML='<span class="badge wet">Too humid</span>'; }
-  else { hc.className='rc hok'; hs.innerHTML='<span class="badge ok">Comfortable</span>'; }
-
-  document.getElementById('batv').textContent = (lastB || '100') + '%';
-  document.getElementById('batb').style.width = (lastB || '100') + '%';
-  document.getElementById('rssi').textContent = lastRssi + ' dBm';
-  document.getElementById('upd').textContent = new Date().toLocaleTimeString();
+  if (lastT != null) {
+    const disp = isFahr ? (lastT*9/5+32) : lastT;
+    const unit = isFahr ? '°F' : '°C';
+    const tv = document.getElementById('tval');
+    tv.innerHTML = `${disp.toFixed(1)}<span class="ru">${unit}</span>`;
+    tv.classList.remove('dash','warm','cool');
+    const tc = document.getElementById('tcell'), ts = document.getElementById('tsub');
+    if      (lastT > 28) { tv.classList.add('warm'); tc.className='rc warm'; ts.textContent=lastT>35?'🌡 Very hot':'Warm'; }
+    else if (lastT < 16) { tv.classList.add('cool'); tc.className='rc cool'; ts.textContent=lastT<5?'🥶 Very cold':'Cool'; }
+    else                 { tc.className='rc';         ts.textContent='Comfortable'; }
+    flash(tv);
+  }
+  if (lastH != null) {
+    const hv = document.getElementById('hval');
+    hv.innerHTML = `${lastH}<span class="ru">%</span>`;
+    hv.classList.remove('dash');
+    const hc = document.getElementById('hcell'), hs = document.getElementById('hsub');
+    if      (lastH < 30) { hc.className='rc hlo'; hs.innerHTML='<span class="badge dry">😟 Too dry</span>'; }
+    else if (lastH > 60) { hc.className='rc hhi'; hs.innerHTML='<span class="badge wet">😓 Too humid</span>'; }
+    else                 { hc.className='rc hok'; hs.innerHTML='<span class="badge ok">😊 Comfortable</span>'; }
+    flash(hv);
+  }
+  if (lastB != null) {
+    document.getElementById('batv').textContent = lastB + '%';
+    const b = document.getElementById('batb');
+    b.style.width = lastB + '%';
+    b.className = 'bb' + (lastB<20?' lo':lastB<40?' mid':'');
+  }
+  document.getElementById('rssi').textContent = lastRssi != null ? lastRssi+' dBm' : '—';
+  document.getElementById('upd').textContent  = new Date().toLocaleTimeString();
 }
 
+function flash(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 function toggleUnit() {
   isFahr = !isFahr;
-  document.getElementById('unitBtn').textContent = isFahr ? '°F / °C' : '°C / °F';
-  if (lastT !== null) updateDisplay();
+  const b = document.getElementById('unitBtn');
+  b.textContent = isFahr ? '°F / °C' : '°C / °F';
+  b.classList.toggle('on', isFahr);
+  updateDisplay();
 }
 
 function push(t, h) {
@@ -230,35 +435,58 @@ function push(t, h) {
 function initChart() {
   const c = document.getElementById('chart');
   ctx2d = c.getContext('2d');
-  const resize = () => {
-    c.width = c.offsetWidth * devicePixelRatio;
+  function resize() {
+    c.width  = c.offsetWidth  * devicePixelRatio;
     c.height = c.offsetHeight * devicePixelRatio;
     ctx2d.scale(devicePixelRatio, devicePixelRatio);
     drawChart();
-  };
+  }
   window.addEventListener('resize', resize);
   resize();
 }
 
 function drawChart() {
-  if (!ctx2d || hist.t.length < 2) return;
-  const c = document.getElementById('chart'), W = c.offsetWidth, H = c.offsetHeight, ctx = ctx2d;
+  if (!ctx2d) return;
+  const c = document.getElementById('chart');
+  const W = c.offsetWidth, H = c.offsetHeight, n = hist.t.length;
+  const ctx = ctx2d;
   ctx.clearRect(0,0,W,H);
-  const P={top:12,right:12,bottom:24,left:40}, pw=W-P.left-P.right, ph=H-P.top-P.bottom;
-  const line = (data, rgb, lo, hi) => {
-    const rng = hi-lo||1;
-    ctx.beginPath(); ctx.strokeStyle=`rgb(${rgb})`; ctx.lineWidth=2;
-    data.forEach((v,i) => {
-      const x=P.left+(i/(hist.t.length-1))*pw, y=P.top+ph-((v-lo)/rng)*ph;
-      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
-    });
+  if (n < 2) {
+    ctx.fillStyle='#2a3d2f'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('Waiting for readings…', W/2, H/2); return;
+  }
+  const P={top:12,right:12,bottom:24,left:40};
+  const pw=W-P.left-P.right, ph=H-P.top-P.bottom;
+  ctx.strokeStyle='rgba(255,255,255,0.033)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=P.top+ph/4*i;ctx.beginPath();ctx.moveTo(P.left,y);ctx.lineTo(W-P.right,y);ctx.stroke();}
+  function line(data,rgb,lo,hi){
+    const rng=hi-lo||1;
+    ctx.beginPath();ctx.strokeStyle=`rgb(${rgb})`;ctx.lineWidth=2;ctx.lineJoin='round';
+    data.forEach((v,i)=>{const x=P.left+(i/(n-1))*pw,y=P.top+ph-((v-lo)/rng)*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
     ctx.stroke();
-  };
-  line(hist.t, '45,255,126', Math.min(...hist.t)-1, Math.max(...hist.t)+1);
-  line(hist.h, '91,200,245', Math.min(...hist.h)-2, Math.max(...hist.h)+2);
+    const g=ctx.createLinearGradient(0,P.top,0,P.top+ph);
+    g.addColorStop(0,`rgba(${rgb},0.2)`);g.addColorStop(1,`rgba(${rgb},0)`);
+    ctx.beginPath();
+    data.forEach((v,i)=>{const x=P.left+(i/(n-1))*pw,y=P.top+ph-((v-lo)/rng)*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.lineTo(P.left+pw,P.top+ph);ctx.lineTo(P.left,P.top+ph);ctx.closePath();
+    ctx.fillStyle=g;ctx.fill();
+  }
+  line(hist.t,'45,255,126',Math.min(...hist.t)-1,Math.max(...hist.t)+1);
+  line(hist.h,'91,200,245',Math.min(...hist.h)-2,Math.max(...hist.h)+2);
+  const tlo=Math.min(...hist.t)-1,thi=Math.max(...hist.t)+1;
+  ctx.fillStyle='#3a5a42';ctx.font='9px DM Mono,monospace';ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const v=tlo+(thi-tlo)/4*(4-i);ctx.fillText(v.toFixed(1),P.left-4,P.top+ph/4*i+3);}
+  ctx.textAlign='center';ctx.fillStyle='#283d2d';
+  const step=Math.ceil(n/5);
+  for(let i=0;i<n;i+=step){ctx.fillText(hist.l[i],P.left+(i/(n-1))*pw,H-4);}
 }
 
 initChart();
+log('Ready — click Connect Device.', 'i');
+if (!navigator.bluetooth) {
+  log('⚠ Web Bluetooth not found. Enable edge://flags/#enable-experimental-web-platform-features then restart Edge.', 'er');
+  document.getElementById('connBtn').disabled = true;
+}
 </script>
 </body>
 </html>
