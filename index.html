@@ -21,13 +21,13 @@
       repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.013) 39px, rgba(255,255,255,0.013) 40px),
       repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.013) 39px, rgba(255,255,255,0.013) 40px);
   }
-  header { text-align: center; margin-bottom: 32px; }
+  header { text-align: center; margin-bottom: 32px; animation: fadeDown 0.5s ease both; }
   .logo-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
   .logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px var(--accent-glow); }
   h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.5rem,4vw,2.2rem); font-weight: 800; letter-spacing: -0.03em; color: #fff; }
   .subtitle { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
 
-  .card { width: 100%; max-width: 700px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card { width: 100%; max-width: 700px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; animation: fadeUp 0.5s 0.1s ease both; }
   .card-hd { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--panel2); }
   .dname { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
   .did { font-size: 0.67rem; color: var(--muted); margin-top: 2px; font-style: italic; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -38,27 +38,45 @@
 
   .readings { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
   .rc { background: var(--panel); padding: 30px 26px; position: relative; overflow: hidden; }
+  .rc::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity 0.5s; }
+  .rc.warm::after  { background:radial-gradient(circle at 50% 110%,rgba(255,87,87,0.09),transparent 65%);  opacity:1; }
+  .rc.cool::after  { background:radial-gradient(circle at 50% 110%,rgba(91,200,245,0.09),transparent 65%); opacity:1; }
+  .rc.hhi::after   { background:radial-gradient(circle at 50% 110%,rgba(91,200,245,0.09),transparent 65%); opacity:1; }
+  .rc.hlo::after   { background:radial-gradient(circle at 50% 110%,rgba(255,140,61,0.09),transparent 65%); opacity:1; }
+  .rc.hok::after   { background:radial-gradient(circle at 50% 110%,rgba(45,255,126,0.07),transparent 65%); opacity:1; }
   .rl { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:12px; }
-  .rv { font-family:'Syne',sans-serif; font-size:clamp(2.8rem,7vw,4rem); font-weight:800; line-height:1; color:#fff; letter-spacing:-0.04em; }
+  .rv { font-family:'Syne',sans-serif; font-size:clamp(2.8rem,7vw,4rem); font-weight:800; line-height:1; color:#fff; letter-spacing:-0.04em; transition:color 0.4s; }
   .rv.dash { color:var(--muted) !important; opacity:0.3; }
   .ru { font-size:1.3rem; font-weight:600; opacity:0.5; margin-left:3px; }
+  .rs { margin-top:9px; font-size:0.68rem; color:var(--dim); min-height:20px; }
+  .badge { display:inline-flex; align-items:center; border-radius:100px; padding:3px 9px; font-size:0.64rem; letter-spacing:0.04em; }
+  .badge.ok  { background:var(--accent-dim); border:1px solid rgba(45,255,126,0.2); color:var(--accent); }
+  .badge.dry { background:rgba(255,140,61,0.1); border:1px solid rgba(255,140,61,0.2); color:var(--warn); }
+  .badge.wet { background:rgba(91,200,245,0.09); border:1px solid rgba(91,200,245,0.2); color:var(--cold); }
 
   .strip { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); border-top:1px solid var(--border); }
   .sc { background:var(--panel2); padding:15px 16px; text-align:center; }
   .sl { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:4px; }
   .sv { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; }
   .bw { height:3px; background:var(--border); border-radius:2px; margin-top:6px; overflow:hidden; }
-  .bb { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.6s; }
+  .bb { height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.6s,background 0.4s; }
 
   .ctrl { padding:18px 20px; display:flex; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); background:var(--panel2); }
   button { font-family:'DM Mono',monospace; cursor:pointer; border:none; border-radius:10px; padding:10px 18px; font-size:0.75rem; font-weight:500; transition:all 0.18s; }
   .bp { background:var(--accent); color:#061009; flex:1; box-shadow:0 4px 16px var(--accent-glow); }
   .bs { background:transparent; color:var(--dim); border:1px solid var(--border); }
+  .bu { background:var(--panel); border:1px solid var(--border); color:var(--dim); min-width:88px; }
+
+  .cw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; animation:fadeUp 0.5s 0.2s ease both; }
+  canvas { display:block; width:100%!important; height:165px!important; background:var(--panel); }
   
   .dw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid rgba(255,140,61,0.25); border-radius:var(--radius); overflow:hidden; }
   .dh { padding:11px 20px; background:rgba(255,140,61,0.07); border-bottom:1px solid rgba(255,140,61,0.15); font-family:'Syne',sans-serif; font-weight:700; font-size:0.74rem; color:var(--warn); text-transform:uppercase; }
   #rawlog { padding:14px 20px; max-height:200px; overflow-y:auto; font-size:0.68rem; }
-  #log { padding:12px 20px; max-height:100px; overflow-y:auto; font-size:0.65rem; color: var(--dim); border-top: 1px solid var(--border); }
+  #log { padding:12px 20px; max-height:145px; overflow-y:auto; font-size:0.69rem; border-top: 1px solid var(--border); }
+  .le { color:var(--muted); } .le.ok { color:var(--accent); } .ts { opacity:0.32; margin-right:8px; }
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp  {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 </style>
 </head>
@@ -69,7 +87,7 @@
     <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#061009" stroke-width="2.5"><path d="M12 9V2"/><circle cx="12" cy="14" r="4"/><path d="M8.5 5.5H6M8.5 9H5"/></svg></div>
     <h1>TP357S Monitor</h1>
   </div>
-  <p class="subtitle">ThermoPro BLE · Fixed Connection</p>
+  <p class="subtitle">ThermoPro BLE · Fixed Version</p>
 </header>
 
 <div class="card">
@@ -78,8 +96,8 @@
     <div class="pill" id="pill"><span class="dot" id="pdot"></span><span id="ptxt">Idle</span></div>
   </div>
   <div class="readings">
-    <div class="rc"><div class="rl">Temperature</div><div class="rv dash" id="tval">—<span class="ru">°C</span></div></div>
-    <div class="rc"><div class="rl">Humidity</div><div class="rv dash" id="hval">—<span class="ru">%</span></div></div>
+    <div class="rc" id="tcell"><div class="rl">Temperature</div><div class="rv dash" id="tval">—<span class="ru">°C</span></div><div class="rs" id="tsub">&nbsp;</div></div>
+    <div class="rc" id="hcell"><div class="rl">Humidity</div><div class="rv dash" id="hval">—<span class="ru">%</span></div><div class="rs" id="hsub">&nbsp;</div></div>
   </div>
   <div class="strip">
     <div class="sc"><div class="sl">Battery</div><div class="sv" id="batv">—</div><div class="bw"><div class="bb" id="batb"></div></div></div>
@@ -89,7 +107,12 @@
   <div class="ctrl">
     <button class="bp" id="connBtn" onclick="connectDevice()">▶ Connect Device</button>
     <button class="bs" onclick="location.reload()">■ Disconnect</button>
+    <button class="bu" id="unitBtn" onclick="toggleUnit()">°C / °F</button>
   </div>
+</div>
+
+<div class="cw">
+  <canvas id="chart" height="165"></canvas>
 </div>
 
 <div class="dw">
@@ -99,20 +122,25 @@
 <div id="log"></div>
 
 <script>
+let device = null, isFahr = false;
 let lastT = null, lastH = null, lastB = null, lastRssi = null;
+let hist = { t:[], h:[], l:[] };
+const MAX = 80;
+let ctx2d = null;
 
-function log(msg) {
+function log(msg, type='i') {
   const el = document.getElementById('log');
   const d = document.createElement('div');
-  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  d.className = 'le ' + type;
+  d.innerHTML = `<span class="ts">${new Date().toLocaleTimeString()}</span>${msg}`;
   el.prepend(d);
 }
 
 function tryParse(bytes) {
-  // Common TP357 format: temp is first 2 bytes, hum is 3rd, battery is 5th
-  if (bytes.length >= 5) {
+  // Strategy: temp (bytes 0-1), humidity (byte 2), battery (byte 3)
+  if (bytes.length >= 4) {
     const t = (new Int16Array(new Uint8Array([bytes[0], bytes[1]]).buffer))[0] / 10;
-    const h = bytes[2], b = bytes[4];
+    const h = bytes[2], b = bytes[3];
     if (t > -40 && t < 85 && h <= 100) return { t, h, b };
   }
   return null;
@@ -123,22 +151,24 @@ function onAdv(e) {
   if (e.manufacturerData && e.manufacturerData.has(0xec88)) {
     const dv = e.manufacturerData.get(0xec88);
     const bytes = new Uint8Array(dv.buffer);
-    const hex = [...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
-    document.getElementById('rawlog').innerHTML = `<div style="color:var(--accent)">ID 0xec88: ${hex}</div>`;
+    const hexStr = [...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    document.getElementById('rawlog').innerHTML = `<div class="rrow"><span class="rk">ID 0xec88:</span><span class="rv2">${hexStr}</span></div>`;
     
     const parsed = tryParse(bytes);
     if (parsed) {
-      lastT = parsed.t; lastH = parsed.h; lastB = parsed.b;
-      updateUI();
+      lastT = parsed.t; lastH = parsed.h; lastB = (parsed.b > 100) ? lastB : parsed.b;
+      updateDisplay();
+      push(parsed.t, parsed.h);
     }
   }
 }
 
 async function connectDevice() {
   try {
-    log("Opening picker...");
-    const device = await navigator.bluetooth.requestDevice({
+    log("Requesting device...");
+    device = await navigator.bluetooth.requestDevice({
       filters: [{ namePrefix: 'TP357' }, { namePrefix: 'Thermopro' }],
+      // CRITICAL FIX: Explicitly request manufacturer data 0xec88
       optionalManufacturerData: [0xec88], 
       optionalServices: ['battery_service', 'environmental_sensing']
     });
@@ -148,23 +178,87 @@ async function connectDevice() {
     
     document.getElementById('connBtn').disabled = true;
     document.getElementById('pill').className = 'pill live';
-    document.getElementById('pdot').className = 'dot pulse';
     document.getElementById('ptxt').textContent = 'Live';
-    log("Connected! Waiting for data...");
+    document.getElementById('pdot').className = 'dot pulse';
+    log("Watching advertisements...", "ok");
   } catch(e) {
-    log("Error: " + e.message);
+    log(e.message, "er");
   }
 }
 
-function updateUI() {
-  document.getElementById('tval').innerHTML = `${lastT.toFixed(1)}<span class="ru">°C</span>`;
-  document.getElementById('hval').innerHTML = `${lastH}<span class="ru">%</span>`;
-  document.getElementById('batv').textContent = (lastB || '—') + '%';
-  document.getElementById('batb').style.width = (lastB || '0') + '%';
+function updateDisplay() {
+  const dispT = isFahr ? (lastT * 9/5 + 32) : lastT;
+  const unit = isFahr ? '°F' : '°C';
+  
+  const tv = document.getElementById('tval');
+  tv.innerHTML = `${dispT.toFixed(1)}<span class="ru">${unit}</span>`;
+  tv.classList.remove('dash');
+  
+  const hv = document.getElementById('hval');
+  hv.innerHTML = `${lastH}<span class="ru">%</span>`;
+  hv.classList.remove('dash');
+
+  const tc = document.getElementById('tcell'), ts = document.getElementById('tsub');
+  if (lastT > 28) { tc.className='rc warm'; ts.textContent='Warm'; }
+  else if (lastT < 16) { tc.className='rc cool'; ts.textContent='Cool'; }
+  else { tc.className='rc'; ts.textContent='Comfortable'; }
+
+  const hc = document.getElementById('hcell'), hs = document.getElementById('hsub');
+  if (lastH < 30) { hc.className='rc hlo'; hs.innerHTML='<span class="badge dry">Too dry</span>'; }
+  else if (lastH > 60) { hc.className='rc hhi'; hs.innerHTML='<span class="badge wet">Too humid</span>'; }
+  else { hc.className='rc hok'; hs.innerHTML='<span class="badge ok">Comfortable</span>'; }
+
+  document.getElementById('batv').textContent = (lastB || '100') + '%';
+  document.getElementById('batb').style.width = (lastB || '100') + '%';
   document.getElementById('rssi').textContent = lastRssi + ' dBm';
   document.getElementById('upd').textContent = new Date().toLocaleTimeString();
-  document.querySelectorAll('.rv').forEach(el => el.classList.remove('dash'));
 }
+
+function toggleUnit() {
+  isFahr = !isFahr;
+  document.getElementById('unitBtn').textContent = isFahr ? '°F / °C' : '°C / °F';
+  if (lastT !== null) updateDisplay();
+}
+
+function push(t, h) {
+  const l = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  hist.t.push(t); hist.h.push(h); hist.l.push(l);
+  if (hist.t.length > MAX) { hist.t.shift(); hist.h.shift(); hist.l.shift(); }
+  drawChart();
+}
+
+function initChart() {
+  const c = document.getElementById('chart');
+  ctx2d = c.getContext('2d');
+  const resize = () => {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = c.offsetHeight * devicePixelRatio;
+    ctx2d.scale(devicePixelRatio, devicePixelRatio);
+    drawChart();
+  };
+  window.addEventListener('resize', resize);
+  resize();
+}
+
+function drawChart() {
+  if (!ctx2d || hist.t.length < 2) return;
+  const c = document.getElementById('chart'), W = c.offsetWidth, H = c.offsetHeight, ctx = ctx2d;
+  ctx.clearRect(0,0,W,H);
+  const P={top:12,right:12,bottom:24,left:40}, pw=W-P.left-P.right, ph=H-P.top-P.bottom;
+  const line = (data, rgb, lo, hi) => {
+    const rng = hi-lo||1;
+    ctx.beginPath(); ctx.strokeStyle=`rgb(${rgb})`; ctx.lineWidth=2;
+    data.forEach((v,i) => {
+      const x=P.left+(i/(hist.t.length-1))*pw, y=P.top+ph-((v-lo)/rng)*ph;
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    });
+    ctx.stroke();
+  };
+  line(hist.t, '45,255,126', Math.min(...hist.t)-1, Math.max(...hist.t)+1);
+  line(hist.h, '91,200,245', Math.min(...hist.h)-2, Math.max(...hist.h)+2);
+}
+
+initChart();
 </script>
 </body>
 </html>
