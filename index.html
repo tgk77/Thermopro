@@ -314,10 +314,9 @@ function onAdv(e) {
   }
 }
 
-// ─── Connect ───
 async function connectDevice() {
   if (!navigator.bluetooth) {
-    log('Web Bluetooth not available. Enable edge://flags/#enable-experimental-web-platform-features', 'er');
+    log('Web Bluetooth not available. Enable experimental-web-platform-features', 'er');
     return;
   }
   document.getElementById('connBtn').disabled = true;
@@ -331,13 +330,12 @@ async function connectDevice() {
         { namePrefix: 'TP-357' },
         { namePrefix: 'Thermopro' },
       ],
-      // List every plausible service so the browser passes their data through
+      // THIS LINE IS THE FIX:
       optionalManufacturerData: [0xec88], 
       optionalServices: [
         'environmental_sensing',
         'battery_service',
         'generic_access'
-        'environmental_sensing',
       ]
     });
 
@@ -348,21 +346,16 @@ async function connectDevice() {
     document.getElementById('discBtn').disabled = false;
 
     device.addEventListener('advertisementreceived', onAdv);
-    device.addEventListener('gattserverdisconnected', () => { log('Device out of range.', 'wa'); setStatus('Out of range',''); });
-
     await device.watchAdvertisements();
+    
     log('watchAdvertisements() active — waiting for packets…', 'ok');
-    log('👀 Check the Raw Packet Inspector below — we need to see what bytes arrive.', 'wa');
 
   } catch(err) {
     document.getElementById('connBtn').disabled = false;
     setStatus('', '');
-    if (err.name === 'NotFoundError') log('Picker closed without selecting.', 'wa');
-    else if (err.name === 'NotSupportedError') log('watchAdvertisements not supported. Enable edge://flags/#enable-experimental-web-platform-features', 'er');
-    else log(`${err.name}: ${err.message}`, 'er');
+    log(`${err.name}: ${err.message}`, 'er');
   }
 }
-
 async function disconnectDevice() {
   if (device) {
     try { await device.unwatchAdvertisements(); } catch(e){}
