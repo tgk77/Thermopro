@@ -332,7 +332,11 @@ async function connectDevice() {
         { namePrefix: 'Thermopro' },
       ],
       // List every plausible service so the browser passes their data through
+      optionalManufacturerData: [0xec88], 
       optionalServices: [
+        'environmental_sensing',
+        'battery_service',
+        'generic_access'
         'environmental_sensing',
         '0000181a-0000-1000-8000-00805f9b34fb',
         '0000181b-0000-1000-8000-00805f9b34fb',
