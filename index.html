@@ -42,7 +42,6 @@
   .rv { font-family:'Syne',sans-serif; font-size:clamp(2.8rem,7vw,4rem); font-weight:800; line-height:1; color:#fff; letter-spacing:-0.04em; }
   .rv.dash { color:var(--muted) !important; opacity:0.3; }
   .ru { font-size:1.3rem; font-weight:600; opacity:0.5; margin-left:3px; }
-  .rs { margin-top:9px; font-size:0.68rem; color:var(--dim); min-height:20px; }
 
   .strip { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); border-top:1px solid var(--border); }
   .sc { background:var(--panel2); padding:15px 16px; text-align:center; }
@@ -56,23 +55,13 @@
   .bp { background:var(--accent); color:#061009; flex:1; box-shadow:0 4px 16px var(--accent-glow); }
   .bs { background:transparent; color:var(--dim); border:1px solid var(--border); }
   .bu { background:var(--panel); border:1px solid var(--border); color:var(--dim); min-width:88px; }
-  .bu.on { border-color:var(--accent); color:var(--accent); }
-
-  .cw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
-  .ch { display:flex; align-items:center; justify-content:space-between; padding:13px 20px; border-bottom:1px solid var(--border); background:var(--panel2); }
-  canvas { display:block; width:100%!important; height:165px!important; background:var(--panel); }
 
   .dw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid rgba(255,140,61,0.25); border-radius:var(--radius); overflow:hidden; }
   .dh { padding:11px 20px; background:rgba(255,140,61,0.07); border-bottom:1px solid rgba(255,140,61,0.15); font-family:'Syne',sans-serif; font-weight:700; font-size:0.74rem; color:var(--warn); text-transform:uppercase; }
   #rawlog { padding:14px 20px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; font-size:0.68rem; }
   .rrow { display:flex; gap:6px; } .rk { color:var(--warn); } .rv2 { color:#c8a060; }
-
-  .lw { width:100%; max-width:700px; margin-top:18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
-  #log { padding:12px 20px; max-height:145px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; font-size:0.69rem; }
-  .le { color:var(--muted); } .le.ok { color:var(--accent); } .le.er { color:var(--hot); }
-  .ts { opacity:0.32; margin-right:8px; }
-
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  #log { padding:12px 20px; max-height:145px; overflow-y:auto; font-size:0.69rem; border-top: 1px solid var(--border); }
+  .le { color:var(--muted); } .le.ok { color:var(--accent); } .ts { opacity:0.32; margin-right:8px; }
 </style>
 </head>
 <body>
@@ -82,7 +71,7 @@
     <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#061009" stroke-width="2.5"><path d="M12 9V2"/><circle cx="12" cy="14" r="4"/><path d="M8.5 5.5H6M8.5 9H5"/></svg></div>
     <h1>TP357S Monitor</h1>
   </div>
-  <p class="subtitle">ThermoPro BLE · Fixed Version</p>
+  <p class="subtitle">ThermoPro BLE · Fixed Connection</p>
 </header>
 
 <div class="card">
@@ -91,8 +80,8 @@
     <div class="pill" id="pill"><span class="dot" id="pdot"></span><span id="ptxt">Idle</span></div>
   </div>
   <div class="readings">
-    <div class="rc" id="tcell"><div class="rl">Temperature</div><div class="rv dash" id="tval">—<span class="ru">°C</span></div><div class="rs" id="tsub"></div></div>
-    <div class="rc" id="hcell"><div class="rl">Humidity</div><div class="rv dash" id="hval">—<span class="ru">%</span></div><div class="rs" id="hsub"></div></div>
+    <div class="rc"><div class="rl">Temperature</div><div class="rv dash" id="tval">—<span class="ru">°C</span></div></div>
+    <div class="rc"><div class="rl">Humidity</div><div class="rv dash" id="hval">—<span class="ru">%</span></div></div>
   </div>
   <div class="strip">
     <div class="sc"><div class="sl">Battery</div><div class="sv" id="batv">—</div><div class="bw"><div class="bb" id="batb"></div></div></div>
@@ -101,25 +90,18 @@
   </div>
   <div class="ctrl">
     <button class="bp" id="connBtn" onclick="connectDevice()">▶ Connect Device</button>
-    <button class="bs" id="discBtn" onclick="disconnectDevice()" disabled>■ Disconnect</button>
-    <button class="bu" id="unitBtn" onclick="toggleUnit()">°C / °F</button>
+    <button class="bs" onclick="location.reload()">■ Disconnect</button>
   </div>
 </div>
-
-<div class="cw"><canvas id="chart"></canvas></div>
 
 <div class="dw">
   <div class="dh">🔍 Raw Packet Inspector</div>
   <div id="rawlog">Waiting for packets...</div>
 </div>
-
-<div class="lw"><div id="log"></div></div>
+<div id="log"></div>
 
 <script>
-let device = null, isFahr = false;
 let lastT = null, lastH = null, lastB = null, lastRssi = null;
-let hist = { t:[], h:[], l:[] };
-const MAX = 50;
 
 function log(msg, type='i') {
   const el = document.getElementById('log');
@@ -130,7 +112,7 @@ function log(msg, type='i') {
 }
 
 function tryParse(bytes) {
-  // ThermoPro Format: Bytes [0-1] Temp (Int16 / 10), Byte [2] Humidity, Byte [3] Battery
+  // TP357 Byte Map: [0-1] Temp, [2] Humidity, [3] Battery (varies by model)
   if (bytes.length >= 4) {
     const t = (new Int16Array(new Uint8Array([bytes[0], bytes[1]]).buffer))[0] / 10;
     const h = bytes[2], b = bytes[3];
@@ -142,32 +124,30 @@ function tryParse(bytes) {
 function onAdv(e) {
   lastRssi = e.rssi;
   const rl = document.getElementById('rawlog');
-  let rowHtml = `<div style="border-bottom:1px solid #1e3024;padding-bottom:4px;margin-bottom:4px;">
-    <span style="color:var(--dim)">${new Date().toLocaleTimeString()} | RSSI: ${e.rssi}dBm</span>`;
+  let innerHtml = "";
 
   if (e.manufacturerData && e.manufacturerData.size > 0) {
     for (const [id, dv] of e.manufacturerData) {
       const bytes = new Uint8Array(dv.buffer);
       const hex = [...bytes].map(b=>b.toString(16).padStart(2,'0')).join(' ');
-      rowHtml += `<div class="rrow"><span class="rk">ID 0x${id.toString(16)}:</span><span class="rv2">${hex}</span></div>`;
+      innerHtml += `<div class="rrow"><span class="rk">ID 0x${id.toString(16)}:</span><span class="rv2">${hex}</span></div>`;
       
       const parsed = tryParse(bytes);
       if (parsed) {
-        lastT = parsed.t; lastH = parsed.h; lastB = parsed.b;
+        lastT = parsed.t; lastH = parsed.h; lastB = (parsed.b > 100) ? lastB : parsed.b;
         updateUI();
       }
     }
   }
-  rowHtml += `</div>`;
-  rl.innerHTML = rowHtml + rl.innerHTML.substring(0, 1000);
+  if (innerHtml) rl.innerHTML = innerHtml + `<div style="color:var(--dim); font-size:0.6rem">RSSI: ${e.rssi}dBm</div>`;
 }
 
 async function connectDevice() {
   try {
     log("Requesting device...");
-    device = await navigator.bluetooth.requestDevice({
+    const device = await navigator.bluetooth.requestDevice({
       filters: [{ namePrefix: 'TP357' }, { namePrefix: 'Thermopro' }],
-      // CRITICAL FIX: Explicitly request the ThermoPro manufacturer ID (0xec88)
+      // CRITICAL FIX: Tell the browser to allow manufacturer data with ID 0xec88
       optionalManufacturerData: [0xec88], 
       optionalServices: ['battery_service', 'environmental_sensing']
     });
@@ -176,8 +156,8 @@ async function connectDevice() {
     await device.watchAdvertisements();
     
     document.getElementById('connBtn').disabled = true;
-    document.getElementById('discBtn').disabled = false;
     document.getElementById('pill').className = 'pill live';
+    document.getElementById('pdot').className = 'dot pulse';
     document.getElementById('ptxt').textContent = 'Live';
     log("Watching advertisements...", "ok");
   } catch(e) {
@@ -186,18 +166,14 @@ async function connectDevice() {
 }
 
 function updateUI() {
-  const tDisp = isFahr ? (lastT * 9/5 + 32) : lastT;
-  document.getElementById('tval').innerHTML = `${tDisp.toFixed(1)}<span class="ru">${isFahr?'°F':'°C'}</span>`;
+  document.getElementById('tval').innerHTML = `${lastT.toFixed(1)}<span class="ru">°C</span>`;
   document.getElementById('hval').innerHTML = `${lastH}<span class="ru">%</span>`;
-  document.getElementById('batv').textContent = lastB + '%';
-  document.getElementById('batb').style.width = lastB + '%';
+  document.getElementById('batv').textContent = (lastB || '100') + '%';
+  document.getElementById('batb').style.width = (lastB || '100') + '%';
   document.getElementById('rssi').textContent = lastRssi + ' dBm';
   document.getElementById('upd').textContent = new Date().toLocaleTimeString();
   document.querySelectorAll('.rv').forEach(el => el.classList.remove('dash'));
 }
-
-function toggleUnit() { isFahr = !isFahr; if(lastT) updateUI(); }
-function disconnectDevice() { location.reload(); }
 </script>
 </body>
 </html>
